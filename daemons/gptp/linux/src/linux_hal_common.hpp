@@ -628,13 +628,11 @@ class LinuxThreadFactory:public OSThreadFactory {
 		 return new LinuxThread();
 	 }
 
-#ifdef RPI
 	std::shared_ptr<OSThread> create()
 	{
 		return std::shared_ptr<OSThread>(new LinuxThread());
 	}
-#endif	
-
+	
 };
 
 /**
