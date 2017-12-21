@@ -65,6 +65,10 @@ class LinkLayerAddress:public InterfaceLabel
 	 */
 	LinkLayerAddress()
 	{
+#ifdef APTP_IPV4
+            fIpv4Addr = inet_addr("127.0.0.1");
+            fIpVersion = 4;
+#endif
 	};
 
 	LinkLayerAddress(const std::string& ip, uint16_t portNumber);
@@ -78,7 +82,9 @@ class LinkLayerAddress:public InterfaceLabel
 	{
 		uint8_t *ptr;
 		address_scalar <<= 16;
-		
+#ifdef APTP_IPV4
+                fIpVersion = 4;
+#endif	
 		for (ptr = fIpv6Addr; ptr < fIpv6Addr + ETHER_ADDR_OCTETS; ++ptr) {
 			*ptr = (address_scalar & 0xFF00000000000000ULL) >> 56;
 			address_scalar <<= 8;
@@ -174,6 +180,9 @@ class LinkLayerAddress:public InterfaceLabel
 	{
 	   memset(fIpv6Addr, 0, sizeof(fIpv6Addr));
 	   fIpv4Addr = 0;
+#ifdef APTP_IPV4
+            fIpVersion = 4;
+#endif
 
 		uint8_t *ptr = fIpv6Addr;
 		uint8_t *dest = ptr;
