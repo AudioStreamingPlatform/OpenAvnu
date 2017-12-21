@@ -15,7 +15,7 @@ endif(MOZART)
 
 if(UNIX)
   include_directories( include "./linux/src" )
-  file(GLOB GPTP_OS "./linux/src/*.cpp")
+  file(GLOB GPTP_OS "${CMAKE_CURRENT_SOURCE_DIR}/linux/src/*.cpp")
   if(MOZART)
     list(REMOVE_ITEM GPTP_OS "${CMAKE_CURRENT_SOURCE_DIR}/linux/src/linux_hal_intelce.cpp")
     list(REMOVE_ITEM GPTP_OS "${CMAKE_CURRENT_SOURCE_DIR}/linux/src/linux_hal_i210.cpp")
