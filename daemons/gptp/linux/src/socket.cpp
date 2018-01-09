@@ -191,8 +191,8 @@ bool ASocket::Send(std::mutex& keeper, const std::string& ipAddress, int port,
 	size_t remoteSize;
 
 	memset(&remoteIpv4, 0, sizeof(remoteIpv4));
-	remoteIpv4.sin4_port = htons(port);
-	remoteIpv4.sin4_family = AF_INET;
+	remoteIpv4.sin_port = htons(port);
+	remoteIpv4.sin_family = AF_INET;
 	remote = reinterpret_cast<sockaddr*>(&remoteIpv4);
 	remoteSize = sizeof(remoteIpv4);
 	inet_pton(AF_INET, ipAddress.c_str(), &remoteIpv4.sin_addr);
@@ -230,12 +230,12 @@ void ASocket::Bind()
 	size_t addrSize;
 
 	memset(&addrIpv4, 0, sizeof(addrIpv4));
-	addrIpv4.sin4_port = htons(fPort);
-	addrIpv4.sin4_addr = in4addr_any;
-	addrIpv4.sin4_family = AF_INET;
+	addrIpv4.sin_port = htons(fPort);
+	addrIpv4.sin_addr.s_addr = INADDR_ANY;
+	addrIpv4.sin_family = AF_INET;
 	addr = reinterpret_cast<sockaddr*>(&addrIpv4);
 	addrSize = sizeof(addrIpv4);
-#endif
+#else
 	sockaddr_in6 addrIpv6;
 	sockaddr *addr;
 	size_t addrSize;
