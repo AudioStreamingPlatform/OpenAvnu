@@ -62,12 +62,10 @@ ASocket::ASocket(const std::string& interfaceName, uint16_t port) :
 	}
 	else
 	{
-#ifndef APTP_IPV4
 		// Configure the socket to send to and receive from ipv4 or ipv6 addresses
 		int v6OnlyValue = 0;
 		setsockopt(fSocketDescriptor, SOL_SOCKET, IPV6_V6ONLY, &v6OnlyValue,
 		 sizeof(v6OnlyValue));
-#endif
 
 		struct ifreq device;
 		memset(&device, 0, sizeof(device));
