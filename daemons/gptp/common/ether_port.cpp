@@ -98,6 +98,12 @@ EtherPort::~EtherPort()
 {
 #ifndef APTP	
 	delete port_ready_condition;
+#else
+	/*
+	 * We need this for the aptp build not sure why it is inside the ifndef
+	 * we get seg fault if not included in the aptp build
+	 */
+	delete port_ready_condition;
 #endif
 	delete qualified_announce;
 }
@@ -184,6 +190,12 @@ bool EtherPort::_init_port( void )
 	pDelayIntervalTimerLock = lock_factory->createLock(oslock_recursive);
 
 #ifndef APTP
+	port_ready_condition = condition_factory->createCondition();
+#else
+	/*
+	 * We need this for the aptp build not sure why it is inside the ifndef
+	 * we get seg fault if not included in the aptp build
+	 */
 	port_ready_condition = condition_factory->createCondition();
 #endif
 	
