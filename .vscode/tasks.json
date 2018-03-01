@@ -1,0 +1,79 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "1.0.0",
+    "tasks": [
+        {
+            "label": "clean",
+            "type": "shell",
+            "command": "${workspaceRoot}/scripts/clean.sh",
+            "args": [
+                "${workspaceRoot}"
+            ],
+            "options": {
+                "cwd": "${workspaceRoot}"
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "make-s810-target",
+            "type": "shell",
+            "command": "${workspaceRoot}/scripts/build.sh",
+            "args": [
+                "${workspaceRoot}",
+                "s810"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "make-x86-target",
+            "type": "shell",
+            "command": "${workspaceRoot}/scripts/build.sh",
+            "args": [
+                "${workspaceRoot}",
+                "x86"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "prepare-remote-debug",
+            "type": "shell",
+            "command": "${workspaceRoot}/scripts/prepare-remote-debug.sh",
+            "args": [
+                "${workspaceRoot}",
+                "${env:MOZART_REMOTE_DEBUG_IP}"
+            ],
+            "options": {
+                "cwd": "${workspaceRoot}"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "copy build to target",
+            "type": "shell",
+            "command": "scp ${workspaceRoot}/build/daemons/gptp/gptp root@${env:MOZART_REMOTE_DEBUG_IP}:/usr/sbin/gptpd",
+            "args": [
+            ],
+            "options": {
+                "cwd": "${workspaceRoot}"
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": []
+        }
+    ]
+}
