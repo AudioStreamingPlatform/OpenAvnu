@@ -13,4 +13,4 @@ fi;
 
 cd $WORKSPACEROOT/build
 cmake -DSYSTEMD_WATCHDOG=OFF -DMOZART=ON ../
-make gptp
+make
