@@ -176,6 +176,7 @@ int main(int argc, char **argv)
 
 #if defined(MOZART)
 	sd_notify(false, "STATUS=Starting to aptp...\n");
+	sleep(5);
 #endif
 
 	GPTP_LOG_REGISTER();
