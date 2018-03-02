@@ -176,7 +176,6 @@ int main(int argc, char **argv)
 
 #if defined(MOZART)
 	sd_notify(false, "STATUS=Starting to aptp...\n");
-	sleep(60);
 #endif
 
 	GPTP_LOG_REGISTER();
@@ -561,6 +560,7 @@ int main(int argc, char **argv)
 	}
 
 #if defined(MOZART)
+	sd_notify(false, "STATUS=Wating for events...\n");
 	sd_notify(false, "READY=1\n");
 #endif
 	pPort->processEvent(POWERUP);
