@@ -12,5 +12,5 @@ if [ $TARGET = "s810" ]; then
 fi;
 
 cd $WORKSPACEROOT/build
-cmake ../
+cmake -DSYSTEMD_WATCHDOG=OFF -DMOZART=ON ../
 make gptp

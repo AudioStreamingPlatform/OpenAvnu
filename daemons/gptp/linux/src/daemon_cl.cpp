@@ -65,6 +65,10 @@
 #include <watchdog.hpp>
 #endif
 
+#ifdef MOZART
+#include <systemd/sd-daemon.h>
+#endif
+
 #define PHY_DELAY_GB_TX_I20 184 //1G delay
 #define PHY_DELAY_GB_RX_I20 382 //1G delay
 #define PHY_DELAY_MB_TX_I20 1044//100M delay
@@ -169,6 +173,10 @@ int main(int argc, char **argv)
 			return -1;
 		}
 	}
+
+#if defined(MOZART)
+	sd_notify(false, "STATUS=Starting to aptp...\n");
+#endif
 
 	GPTP_LOG_REGISTER();
 	GPTP_LOG_INFO("gPTP starting");
@@ -404,6 +412,9 @@ int main(int argc, char **argv)
 	portInit.timer_factory = timer_factory;
 	portInit.lock_factory = lock_factory;
 
+#if defined(MOZART)
+	sd_notify(false, "STATUS=Setup network port...\n");
+#endif
 	pPort = new EtherPort(&portInit);
 
 	GPTP_LOG_INFO("smoothRateChange: %s", (pPort->SmoothRateChange() ? "true" : "false"));
@@ -490,6 +501,9 @@ int main(int argc, char **argv)
 	pClock = new IEEE1588Clock(false, syntonize, priority1, timerq_factory, ipc,
 	  lock_factory);
 
+#if defined(MOZART)
+	sd_notify(false, "STATUS=Set clock...\n");
+#endif
 	pPort->setClock(pClock);
 
 	if (restoredataptr != nullptr)
@@ -545,6 +559,9 @@ int main(int argc, char **argv)
 		pGPTPPersist->registerWriteCB(gPTPPersistWriteCB);
 	}
 
+#if defined(MOZART)
+	sd_notify(false, "READY=1\n");
+#endif
 	pPort->processEvent(POWERUP);
 
 	do {
@@ -574,6 +591,10 @@ int main(int argc, char **argv)
 	adrListener.Stop();
 #endif
 
+#if defined(MOZART)
+	sd_notify(false, "STATUS=Shutting down...\n");
+	sd_notify(false, "STOPPING=1\n");
+#endif
 	GPTP_LOG_ERROR("Exiting on %d", sig);
 
 	if (pGPTPPersist) {
