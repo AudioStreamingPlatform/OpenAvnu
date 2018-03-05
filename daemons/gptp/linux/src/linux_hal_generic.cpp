@@ -197,7 +197,8 @@ net_result LinuxNetworkInterface::receive(LinkLayerAddress *addr, uint8_t *paylo
 				{
 					if (errno == ENOMSG)
 					{
-						GPTP_LOG_ERROR("Got ENOMSG: %s:%d", __FILE__, __LINE__);
+						// Not sure that this is an error and it spams the log it works even with this error message
+						//GPTP_LOG_ERROR("Got ENOMSG: %s:%d", __FILE__, __LINE__);
 						ret = net_trfail;
 					}
 					else
