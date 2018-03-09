@@ -31,7 +31,7 @@
 
 ******************************************************************************/
 
-#include <linux/timex.h>
+#include <sys/timex.h>
  // avoid indirect inclusion of time.h since this will clash with linux/timex.h
 #define _TIME_H  1
 #define _STRUCT_TIMEVAL 1
