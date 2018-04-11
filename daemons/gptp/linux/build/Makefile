@@ -42,9 +42,9 @@ PRECISE_TIME_TEST = "\#include <linux/ptp_clock.h>\\n\
 HAS_PRECISE_TIME = $(shell echo $(PRECISE_TIME_TEST) | $(CC) -xc - \
 -I$(ALTERNATE_LINUX_INCPATH) -o /dev/null > /dev/null 2>&1 ; echo $$?)
 
-#ifeq ($(HAS_PRECISE_TIME),0)
+ifeq ($(HAS_PRECISE_TIME),0)
        CFLAGS_G += -DPTP_HW_CROSSTSTAMP
-#endif
+endif
 
 CPPFLAGS_G = $(CFLAGS_G) -std=c++0x -Wnon-virtual-dtor
 LDFLAGS_G = 
@@ -135,6 +135,13 @@ ifeq ($(GENIVI_DLT),1)
 	LDFLAGS_G += -ldlt -L$(GENIVI_DLT_LIB_PATH)
 endif
 
+ifeq ($(SYSTEMD_WATCHDOG),1)
+	CFLAGS_G += -DSYSTEMD_WATCHDOG
+	LDFLAGS_G += -lsystemd
+	OBJ_FILES += $(OBJ_DIR)/watchdog.o
+	HEADER_FILES += $(SRC_DIR)/watchdog.hpp
+endif
+
 LDFLAGS_G += -lpthread -lrt
 
 CFLAGS = $(CFLAGS_G)
@@ -210,6 +217,9 @@ $(OBJ_DIR)/gptp_cfg.o: $(COMMON_DIR)/gptp_cfg.cpp $(HEADER_FILES)
 
 $(OBJ_DIR)/ini.o: $(COMMON_DIR)/ini.c $(HEADER_FILES)
 	$(CC) $(CFLAGS) -c $(COMMON_DIR)/ini.c -o $(OBJ_DIR)/ini.o
+
+$(OBJ_DIR)/watchdog.o: $(SRC_DIR)/watchdog.cpp $(HEADER_FILES)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $(SRC_DIR)/watchdog.cpp -o $(OBJ_DIR)/watchdog.o
 clean:
 	$(RM) *~ $(OBJ_DIR)/*.o  $(OBJ_DIR)/daemon_cl
 

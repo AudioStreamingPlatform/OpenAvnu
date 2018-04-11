@@ -637,8 +637,8 @@ class LinuxThreadFactory:public OSThreadFactory {
 	{
 		return std::make_shared<LinuxThread>();
 	}
-#endif
-	
+#endif	
+
 };
 
 /**

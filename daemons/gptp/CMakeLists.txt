@@ -1,16 +1,13 @@
-cmake_minimum_required (VERSION 3.3.1)
+cmake_minimum_required (VERSION 3.4)
 project (gptp)
 
 include_directories( "./common" )
 file(GLOB GPTP_COMMON "./common/*.cpp" "./common/*.c")
 
-add_definitions(-DAPTP)
-
 if(UNIX)
   include_directories( include "./linux/src" )
   file(GLOB GPTP_OS "./linux/src/*.cpp")
-  add_executable (gptp ${GPTP_COMMON} ${GPTP_OS})
-  target_link_libraries(gptp pthread rt)
+  target_link_libraries(gptp pthread)
 elseif(WIN32)
   if( CMAKE_SIZEOF_VOID_P EQUAL 8 )
     link_directories($ENV{WPCAP_DIR}/Lib/x64)

@@ -1021,7 +1021,7 @@ bool LinuxSharedMemoryIPC::init(OS_IPC_ARG *barg)
       ptimedata->asCapable = false;
 		ptimedata->port_state = PTP_UNCALIBRATED;
 		ptimedata->process_id = process_id;
-		
+
 		/* unlock */
 		pthread_mutex_unlock((pthread_mutex_t *) shm_buffer);
 	}
@@ -1197,7 +1197,9 @@ bool LinuxNetworkInterfaceFactory::createInterface(OSNetworkInterface **net_ifac
 
 #ifdef APTP
 	// Allow for sending or receiving to / from ipv4 or ipv6 addresses
-	net_iface_l->sd_general = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+	net_iface_l->sd_general = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
+	int v6OnlyValue = 0;
+	setsockopt(net_iface_l->sd_general, SOL_SOCKET, IPV6_V6ONLY, &v6OnlyValue, sizeof(v6OnlyValue));
 #else
 	net_iface_l->sd_general = socket( PF_PACKET, SOCK_DGRAM, 0 );
 #endif
@@ -1208,7 +1210,8 @@ bool LinuxNetworkInterfaceFactory::createInterface(OSNetworkInterface **net_ifac
 
 #ifdef APTP
 	// Allow for sending or receiving to / from ipv4 or ipv6 addresses
-	net_iface_l->sd_event = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+	net_iface_l->sd_event = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
+	setsockopt(net_iface_l->sd_event, SOL_SOCKET, IPV6_V6ONLY, &v6OnlyValue, sizeof(v6OnlyValue));
 #else
 	net_iface_l->sd_event = socket( PF_PACKET, SOCK_DGRAM, 0 );
 #endif
@@ -1266,21 +1269,21 @@ bool LinuxNetworkInterfaceFactory::createInterface(OSNetworkInterface **net_ifac
 	size_t genAddrSize;
 
 #if APTP
-	struct sockaddr_in evntIpv4;
-	struct sockaddr_in genIpv4;
+	struct sockaddr_in6 evntIpv6;
+	struct sockaddr_in6 genIpv6;
 
-	memset(&evntIpv4, 0, sizeof(evntIpv4));
-	evntIpv4.sin_port = htons(EVENT_PORT);
-	evntIpv4.sin_family = AF_INET;
-	evntIpv4.sin_addr.s_addr = INADDR_ANY;
-	evntAddrSize = sizeof(evntIpv4);
-	evntAddr = reinterpret_cast<sockaddr*>(&evntIpv4);
-	memset(&genIpv4, 0, sizeof(evntIpv4));
-	genIpv4.sin_port = htons(GENERAL_PORT);
-	genIpv4.sin_family = AF_INET;
-	genIpv4.sin_addr.s_addr = INADDR_ANY;
-	genAddrSize = sizeof(genIpv4);
-	genAddr = reinterpret_cast<sockaddr*>(&genIpv4);
+	memset(&evntIpv6, 0, sizeof(evntIpv6));
+	evntIpv6.sin6_port = htons(EVENT_PORT);
+	evntIpv6.sin6_family = AF_INET6;
+	evntIpv6.sin6_addr = in6addr_any;
+	evntAddrSize = sizeof(evntIpv6);
+	evntAddr = reinterpret_cast<sockaddr*>(&evntIpv6);
+	memset(&genIpv6, 0, sizeof(evntIpv6));
+	genIpv6.sin6_port = htons(GENERAL_PORT);
+	genIpv6.sin6_family = AF_INET6;
+	genIpv6.sin6_addr = in6addr_any;
+	genAddrSize = sizeof(genIpv6);
+	genAddr = reinterpret_cast<sockaddr*>(&genIpv6);
 #else
 	struct packet_mreq mr_8021as;
 	memset( &mr_8021as, 0, sizeof( mr_8021as ));
