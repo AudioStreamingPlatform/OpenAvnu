@@ -67,7 +67,7 @@ private:
 	bool precise_timestamp_enabled;
 #endif
 
-#ifdef RPI
+#if defined(RPI) || defined(MOZART_S810)
 	std::shared_ptr<LinuxThreadFactory> fPulseThreadFactory;
 	std::shared_ptr<OSThread> fPulseThread;
 #endif	
@@ -203,9 +203,14 @@ public:
 	 */
 	virtual bool HWTimestamper_adjclockrate( float freq_offset ) const;
 
-#if  defined(WITH_IGBLIB) || defined(RPI)
+#if  defined(WITH_IGBLIB) || defined(RPI) 
 	bool HWTimestamper_PPS_start( );
 	bool HWTimestamper_PPS_stop();
+#endif
+
+#ifdef MOZART_S810
+	bool HWTimestamper_PPS_start() {return true;}
+	bool HWTimestamper_PPS_stop() {return true;}
 #endif
 
 	/**
@@ -215,7 +220,7 @@ public:
 
 	void logCurrentTime(const char * msg);
 
-#ifdef RPI
+#if defined(RPI) || defined(MOZART_S810)
 	void PulseThreadFactory(std::shared_ptr<LinuxThreadFactory> factory)
 	{
 		fPulseThreadFactory = factory;

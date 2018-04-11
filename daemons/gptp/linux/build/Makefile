@@ -121,7 +121,19 @@ else ifeq ($(ARCH),RPI)
 		$(SRC_DIR)/addressregisterlistener.hpp \
 		$(SRC_DIR)/addressapi.hpp \
 		$(SRC_DIR)/rawpacket.hpp \
-		$(SRC_DIR)/socket.hpp 
+		$(SRC_DIR)/socket.hpp
+else ifeq ($(ARCH),MOZART_S810)
+	CFLAGS_G += -DMOZART_S810 -DAPTP
+	OBJ_FILES += $(OBJ_DIR)/linux_hal_generic.o \
+		$(OBJ_DIR)/linux_hal_generic_adj.o \
+		$(OBJ_DIR)/addressapi.o \
+		$(OBJ_DIR)/socket.o \
+		$(OBJ_DIR)/addressregisterlistener.o
+	HEADER_FILES += $(SRC_DIR)/linux_hal_generic.hpp \
+			$(SRC_DIR)/addressregisterlistener.hpp \
+		$(SRC_DIR)/addressapi.hpp \
+		$(SRC_DIR)/rawpacket.hpp \
+		$(SRC_DIR)/socket.hpp
 else
 	OBJ_FILES += $(OBJ_DIR)/linux_hal_generic.o \
 		$(OBJ_DIR)/linux_hal_generic_adj.o

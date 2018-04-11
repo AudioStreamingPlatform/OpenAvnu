@@ -406,7 +406,7 @@ int main(int argc, char **argv)
 #ifdef ARCH_INTELCE
 	std::shared_ptr<EtherTimestamper>  timestamper = std::make_shared<LinuxTimestamperIntelCE>();
 #else
-	#ifdef RPI
+	#if defined(RPI) || defined(MOZART_S810)
 		std::shared_ptr<LinuxTimestamperGeneric>  timestamper = std::make_shared<LinuxTimestamperGeneric>();
 		std::shared_ptr<LinuxThreadFactory> pulseThreadFactory = 
 	 	 std::make_shared<LinuxThreadFactory>();

@@ -632,7 +632,7 @@ class LinuxThreadFactory:public OSThreadFactory {
 		 return new LinuxThread();
 	 }
 
-#ifdef RPI
+#if defined(RPI) || defined(MOZART_S810)
 	std::shared_ptr<OSThread> create() const
 	{
 		return std::make_shared<LinuxThread>();

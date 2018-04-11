@@ -54,7 +54,9 @@ CommonPort::CommonPort( PortInit_t *portInit ) :
 	neighbor_prop_delay_thresh = portInit->neighborPropDelayThreshold;
 	net_label = portInit->net_label;
 #ifndef RPI
+#ifndef MOZART_S810
 	link_thread = thread_factory->create();
+#endif
 #endif
 	listening_thread = thread_factory->create();
 	sync_receipt_thresh = portInit->syncReceiptThreshold;

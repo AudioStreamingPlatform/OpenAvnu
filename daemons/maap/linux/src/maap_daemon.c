@@ -449,11 +449,11 @@ static int act_as_server(const char *listenport, char *iface, int daemonize)
 			if (newfd == -1) {
 				MAAP_LOGF_ERROR("Error %d accepting connection (%s)", errno, strerror(errno));
 			} else {
-				MAAP_LOGF_INFO("New connection from %s on socket %d",
-					inet_ntop(remoteaddr.ss_family,
-						get_in_addr((struct sockaddr*)&remoteaddr),
-						remoteIP, INET6_ADDRSTRLEN),
-					newfd);
+			#ifdef MOZART_S810
+				MAAP_LOGF_INFO("New connection from %s on socket %d", inet_ntop(remoteaddr.ss_family, get_in_addr((struct sockaddr*)&remoteaddr), remoteIP, INET_ADDRSTRLEN), newfd);
+			#else
+				MAAP_LOGF_INFO("New connection from %s on socket %d", inet_ntop(remoteaddr.ss_family, get_in_addr((struct sockaddr*)&remoteaddr), remoteIP, INET6_ADDRSTRLEN), newfd);
+			#endif
 
 				/* Add the socket to our array of connected sockets. */
 				if (clientfd[nextclientindex] != -1)

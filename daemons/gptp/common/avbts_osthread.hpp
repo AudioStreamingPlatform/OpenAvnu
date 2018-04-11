@@ -86,7 +86,7 @@ public:
 	 */
 	virtual OSThread * createThread() const = 0;
 
-#ifdef RPI
+#if defined(RPI) || defined(MOZART_S810)
 	virtual std::shared_ptr<OSThread> create() const = 0;
 #endif	
 

@@ -504,7 +504,7 @@ bool EtherPort::_processEvent( Event e )
 		}
 #endif		
 
-#ifdef RPI
+#if defined(RPI) || defined(MOZART_S810)
 		link_thread = thread_factory->create();
 		if(!link_thread->start(watchNetLinkWrapper, (void *)this))
 		{

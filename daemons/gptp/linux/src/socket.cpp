@@ -48,7 +48,12 @@ ASocket::ASocket(const std::string& interfaceName, uint16_t port) :
  fContinue(true)
 {
 	fPort = port;
+#ifdef MOZART_S810
+	fSocketDescriptor = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+#else
 	fSocketDescriptor = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
+#endif
+
 	if (-1 == fSocketDescriptor)
 	{
 		std::string msg = "Failed to open socket: ";
@@ -58,10 +63,12 @@ ASocket::ASocket(const std::string& interfaceName, uint16_t port) :
 	}
 	else
 	{
+	#ifndef MOZART_S810
 		// Configure the socket to send to and receive from ipv4 or ipv6 addresses
 		int v6OnlyValue = 0;
 		setsockopt(fSocketDescriptor, SOL_SOCKET, IPV6_V6ONLY, &v6OnlyValue,
-		 sizeof(v6OnlyValue));
+		sizeof(v6OnlyValue));
+	#endif
 
 		struct ifreq device;
 		memset(&device, 0, sizeof(device));
@@ -179,6 +186,18 @@ bool ASocket::Send(std::mutex& keeper, const std::string& ipAddress, int port,
 {
 	bool ok = true;
 
+#ifdef MOZART_S810
+	struct sockaddr_in remoteIpv4;
+	sockaddr * remote;
+	size_t remoteSize;
+
+	memset(&remoteIpv4, 0, sizeof(remoteIpv4));
+	remoteIpv4.sin_port = htons(port);
+	remoteIpv4.sin_family = AF_INET;
+	remote = reinterpret_cast<sockaddr*>(&remoteIpv4);
+	remoteSize = sizeof(remoteIpv4);
+	inet_pton(AF_INET, ipAddress.c_str(), &remoteIpv4.sin_addr);
+#else
 	struct sockaddr_in6 remoteIpv6;
 	sockaddr * remote;
 	size_t remoteSize;
@@ -189,6 +208,7 @@ bool ASocket::Send(std::mutex& keeper, const std::string& ipAddress, int port,
 	remote = reinterpret_cast<sockaddr*>(&remoteIpv6);
 	remoteSize = sizeof(remoteIpv6);
 	inet_pton(AF_INET6, ipAddress.c_str(), &remoteIpv6.sin6_addr);
+	#endif
 
 	std::lock_guard<std::mutex> guard(keeper);
 
@@ -205,16 +225,29 @@ bool ASocket::Send(std::mutex& keeper, const std::string& ipAddress, int port,
 
 void ASocket::Bind()
 {
+#ifdef MOZART_S810
+	sockaddr_in addrIpv4;
+#else
 	sockaddr_in6 addrIpv6;
+#endif
 	sockaddr *addr;
 	size_t addrSize;
 
+#ifdef MOZART_S810
+	memset(&addrIpv4, 0, sizeof(addrIpv4));
+	addrIpv4.sin_port = htons(fPort);
+	addrIpv4.sin_addr.s_addr = INADDR_ANY;
+	addrIpv4.sin_family = AF_INET;
+	addr = reinterpret_cast<sockaddr*>(&addrIpv4);
+	addrSize = sizeof(addrIpv4);
+#else
 	memset(&addrIpv6, 0, sizeof(addrIpv6));
 	addrIpv6.sin6_port = htons(fPort);
 	addrIpv6.sin6_addr = in6addr_any;
 	addrIpv6.sin6_family = AF_INET6;
 	addr = reinterpret_cast<sockaddr*>(&addrIpv6);
 	addrSize = sizeof(addrIpv6);
+#endif
 
 	int err = bind(fSocketDescriptor, addr, addrSize);
 	if (-1 == err)

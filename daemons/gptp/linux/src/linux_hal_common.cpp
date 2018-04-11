@@ -1196,10 +1196,14 @@ bool LinuxNetworkInterfaceFactory::createInterface(OSNetworkInterface **net_ifac
 
 
 #ifdef APTP
+#ifdef MOZART_S810
+	net_iface_l->sd_general = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+#else
 	// Allow for sending or receiving to / from ipv4 or ipv6 addresses
 	net_iface_l->sd_general = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
 	int v6OnlyValue = 0;
 	setsockopt(net_iface_l->sd_general, SOL_SOCKET, IPV6_V6ONLY, &v6OnlyValue, sizeof(v6OnlyValue));
+#endif
 #else
 	net_iface_l->sd_general = socket( PF_PACKET, SOCK_DGRAM, 0 );
 #endif
@@ -1209,9 +1213,13 @@ bool LinuxNetworkInterfaceFactory::createInterface(OSNetworkInterface **net_ifac
 	}
 
 #ifdef APTP
+#ifdef MOZART_S810
+	net_iface_l->sd_event = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+#else
 	// Allow for sending or receiving to / from ipv4 or ipv6 addresses
 	net_iface_l->sd_event = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
 	setsockopt(net_iface_l->sd_event, SOL_SOCKET, IPV6_V6ONLY, &v6OnlyValue, sizeof(v6OnlyValue));
+#endif
 #else
 	net_iface_l->sd_event = socket( PF_PACKET, SOCK_DGRAM, 0 );
 #endif
@@ -1269,6 +1277,23 @@ bool LinuxNetworkInterfaceFactory::createInterface(OSNetworkInterface **net_ifac
 	size_t genAddrSize;
 
 #if APTP
+#ifdef MOZART_S810
+	struct sockaddr_in evntIpv4;
+	struct sockaddr_in genIpv4;
+
+	memset(&evntIpv4, 0, sizeof(evntIpv4));
+	evntIpv4.sin_port = htons(EVENT_PORT);
+	evntIpv4.sin_family = AF_INET;
+	evntIpv4.sin_addr.s_addr = INADDR_ANY;
+	evntAddrSize = sizeof(evntIpv4);
+	evntAddr = reinterpret_cast<sockaddr*>(&evntIpv4);
+	memset(&genIpv4, 0, sizeof(evntIpv4));
+	genIpv4.sin_port = htons(GENERAL_PORT);
+	genIpv4.sin_family = AF_INET;
+	genIpv4.sin_addr.s_addr = INADDR_ANY;
+	genAddrSize = sizeof(genIpv4);
+	genAddr = reinterpret_cast<sockaddr*>(&genIpv4);
+#else
 	struct sockaddr_in6 evntIpv6;
 	struct sockaddr_in6 genIpv6;
 
@@ -1284,6 +1309,7 @@ bool LinuxNetworkInterfaceFactory::createInterface(OSNetworkInterface **net_ifac
 	genIpv6.sin6_addr = in6addr_any;
 	genAddrSize = sizeof(genIpv6);
 	genAddr = reinterpret_cast<sockaddr*>(&genIpv6);
+	#endif
 #else
 	struct packet_mreq mr_8021as;
 	memset( &mr_8021as, 0, sizeof( mr_8021as ));

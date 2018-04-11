@@ -40,10 +40,17 @@ OSNetworkInterfaceFactory::factoryMap;
 LinkLayerAddress::LinkLayerAddress(const std::string& ip, uint16_t portNumber) :
  fPort(portNumber)
 {
+  int ok;
+#ifdef MOZART_S810
+  fIpVersion = 4;
+  sockaddr_in dest;
+  ok = inet_pton(AF_INET, ip.c_str(), &(dest.sin_addr));
+  fIpv4Addr = dest.sin_addr.s_addr;
+#else
    size_t pos = ip.find(":");
    memset(fIpv6Addr, 0, sizeof(fIpv6Addr));
    fIpv4Addr = 0;
-   int ok;
+   
    if (pos != std::string::npos)
    {
       fIpVersion = 6;
@@ -58,6 +65,7 @@ LinkLayerAddress::LinkLayerAddress(const std::string& ip, uint16_t portNumber) :
       ok = inet_pton(AF_INET, ip.c_str(), &(dest.sin_addr));
       fIpv4Addr = dest.sin_addr.s_addr;
    }
+#endif
 
    GPTP_LOG_VERBOSE("LinkLayerAddress::LinkLayerAddress  ip:%s  portNumber:%d  "
     "fIpVersion:%d", (ip.empty() ? "EMPTY" : ip.c_str()), portNumber, fIpVersion);

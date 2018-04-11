@@ -165,7 +165,7 @@ protected:
 
 	virtual void _watchNetLink()
 	{
-#ifdef RPI	
+#if defined(RPI) || defined(MOZART_S810)
 		port_ready_condition->signal();
 #endif	
 	}
