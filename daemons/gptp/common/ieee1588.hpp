@@ -65,9 +65,44 @@
 #define GPTP_EC_FAILURE     -1      /*!< Generic error */
 #define GPTP_EC_EAGAIN      -72     /*!< Error: Try again */
 
+/**
+ * @brief Provides the clock quality abstraction.
+ * Represents the quality of the clock
+ * Defined at IEEE 802.1AS-2011
+ * Clause 6.3.3.8
+ */
+class ClockQuality {
+	public:
+      ClockQuality() :
+        cq_class(0),
+        clockAccuracy(0),
+        offsetScaledLogVariance(0)
+      {
+      }
+
+      bool operator==(const ClockQuality& other)
+      {
+      	return cq_class == other.cq_class && clockAccuracy == other.clockAccuracy &&
+      	 offsetScaledLogVariance == other.offsetScaledLogVariance;
+      }
+
+      unsigned char cq_class;         /*!< Clock Class - Clause 8.6.2.2
+                                         Denotes the tracebility of the synchronized time
+                                         distributed by a clock master when it is grandmaster. */
+      unsigned char clockAccuracy;    /*!< Clock Accuracy - clause 8.6.2.3.
+                                         Indicates the expected time accuracy of
+                                         a clock master.*/
+      int16_t offsetScaledLogVariance;/*!< ::Offset Scaled log variance - Clause 8.6.2.4.
+                                         Is the scaled, offset representation
+                                         of an estimate of the PTP variance. The
+                                         PTP variance characterizes the
+                                         precision and frequency stability of the clock
+                                         master. The PTP variance is the square of
+                                         PTPDEV (See B.1.3.2). */
+};
+
 
 class LinkLayerAddress;
-struct ClockQuality;
 class PortIdentity;
 class PTPMessageId;
 class PTPMessageCommon;
@@ -150,6 +185,11 @@ class ClockIdentity {
 	ClockIdentity& operator=(const ClockIdentity& other)
 	{
 		return assign(other);
+	}
+
+	bool operator ==(const ClockIdentity& other)
+	{
+		return 0 == memcmp(id, other.id, PTP_CLOCK_IDENTITY_LENGTH);
 	}
 
 	ClockIdentity& assign(const ClockIdentity& other)
@@ -275,9 +315,6 @@ class ClockIdentity {
  * @brief Provides a Timestamp interface
  */
 class Timestamp {
-private:
-	char output_string[MAX_TSTAMP_STRLEN];
-
 public:
 	uint32_t nanoseconds;	//!< 32 bit nanoseconds value
 	uint32_t seconds_ls;	//!< 32 bit seconds LSB value
@@ -330,12 +367,20 @@ public:
 		return assign(other);
 	}
 
+	bool operator==(const Timestamp& other)
+	{
+		return
+		 nanoseconds == other.nanoseconds &&
+		 seconds_ls == other.seconds_ls &&
+		 seconds_ms == other.seconds_ms &&
+		 _version == other._version;
+	}
+
 	Timestamp& assign(const Timestamp& other)
 	{
 		if (this != &other)
 		{
-		    memcpy(output_string, other.output_string, MAX_TSTAMP_STRLEN);
-		    nanoseconds = other.nanoseconds;
+	   	nanoseconds = other.nanoseconds;
 			seconds_ls = other.seconds_ls;
 			seconds_ms = other.seconds_ms;
 			_version = other._version;
@@ -348,15 +393,14 @@ public:
 	 * seconds_ms seconds_ls nanoseconds
 	 * @return STL string containing timestamp
 	 */
-	std::string toString() const
+	const std::string toString() const
 	{
 		char output_string[MAX_TSTAMP_STRLEN+1];
 
-		PLAT_snprintf
-			( output_string, MAX_TSTAMP_STRLEN+1, "%hu %u.%09u",
-			  seconds_ms, seconds_ls, nanoseconds );
+		PLAT_snprintf(output_string, MAX_TSTAMP_STRLEN+1, "%hu %u.%09u",
+			  seconds_ms, seconds_ls, nanoseconds);
 
-		return std::string( output_string );
+		return output_string;
 	}
 
 	/**
@@ -365,23 +409,20 @@ public:
 	 * @return Object's timestamp + o.
 	 */
 	Timestamp operator+( const Timestamp& o ) {
-		uint32_t ns;
-		uint32_t seconds_ls;
-		uint16_t seconds_ms;
-		uint8_t version;
-		bool carry;
+		uint32_t ns = nanoseconds;
+		uint32_t seconds_ls = this->seconds_ls;
+		uint16_t seconds_ms = this->seconds_ms;
+		uint8_t version = 0;
+		bool carry = false;
 
-		ns  = nanoseconds;
 		ns += o.nanoseconds;
 		carry = ns < nanoseconds || ns >= MAX_NANOSECONDS;
 		ns -= carry ? MAX_NANOSECONDS : 0;
 
-		seconds_ls  = this->seconds_ls;
 		seconds_ls += o.seconds_ls;
 		seconds_ls += carry ? 1 : 0;
 		carry = seconds_ls < this->seconds_ls;
 
-		seconds_ms  = this->seconds_ms;
 		seconds_ms += o.seconds_ms;
 		seconds_ms += carry ? 1 : 0;
 		carry = seconds_ms < this->seconds_ms;
@@ -397,11 +438,11 @@ public:
 	 * @return Object's timestamp - o.
 	 */
 	Timestamp operator-( const Timestamp& o ) {
-		uint32_t nanoseconds;
-		uint32_t seconds_ls;
-		uint16_t seconds_ms;
-		uint8_t version;
-		bool carry, borrow_this;
+		uint32_t nanoseconds = 0;
+		uint32_t seconds_ls = 0;
+		uint16_t seconds_ms = 0;
+		uint8_t version = 0;
+		bool carry = false, borrow_this = false;
 		unsigned borrow_total = 0;
 
 		borrow_this = this->nanoseconds < o.nanoseconds;
@@ -549,7 +590,7 @@ static inline void TIMESTAMP_ADD_NS( Timestamp &ts, uint64_t ns ) {
  * @param  port [in] IEEE1588 port
  * @return PTP message instance of PTPMessageCommon
  */
-PTPMessageCommon *buildPTPMessage(char *buf, size_t size,
+std::shared_ptr<PTPMessageCommon> buildPTPMessage(char *buf, size_t size,
 		LinkLayerAddress *remote,
 		EtherPort *port, const Timestamp& ingressTime);
 

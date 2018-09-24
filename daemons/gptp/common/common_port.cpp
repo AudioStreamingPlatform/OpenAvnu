@@ -31,12 +31,14 @@
 
 ******************************************************************************/
 #include <inttypes.h>
+#include <mutex>
 
 #include "common_port.hpp"
 #include "avbts_clock.hpp"
 #include "common_tstamper.hpp"
 #include "gptp_cfg.hpp"
 
+static std::mutex gTimerFactoryMutex;
 
 CommonPort::CommonPort( PortInit_t *portInit ) :
 	thread_factory( portInit->thread_factory ),
@@ -80,6 +82,28 @@ CommonPort::CommonPort( PortInit_t *portInit ) :
 	link_speed = INVALID_LINKSPEED;
 	fUseHardwareTimestamp = true;
 	fSyncIntervalTimeoutExpireCount = 0;
+
+	delay_mechanism = V2_E2E;
+	testMode = false;
+	log_mean_sync_interval = 0;
+	fLastFilteredRateRatio = 0.0;
+	smoothRateChange = false;
+	fIsWireless = false;
+	fMasterOffset = 0.0;
+	sync_count = 0;
+	delay_sequence_id = 0;
+	lastGmTimeBaseIndicator = 0;
+	fFollowupAhead = false;
+	fHaveFollowup  = false;
+	fHaveDelayResp = false;
+	syncReceiptTimerLock = NULL;
+	syncIntervalTimerLock = NULL;
+	announceIntervalTimerLock = NULL;
+	fAdrRegSocketPort = 0;
+	fLastLocaltime = 0.0;
+	fLastRemote = 0.0;
+	fBadDiffCount = 0;
+	fGoodSyncCount = 0;
 }
 
 CommonPort::~CommonPort()
@@ -114,6 +138,12 @@ bool CommonPort::init_port( void )
 	announceIntervalTimerLock = lock_factory->createLock(oslock_recursive);
 
 	return _init_port();
+}
+
+OSTimer *CommonPort::createTimer()
+{
+	std::lock_guard<std::mutex> lock(gTimerFactoryMutex);
+	return timer_factory->createTimer();
 }
 
 void CommonPort::setClock(IEEE1588Clock * otherClock)
@@ -359,12 +389,14 @@ bool CommonPort::processStateChange( Event e )
 		return true;
 #endif
 
-	int number_ports, j;
-	PTPMessageAnnounce *EBest = NULL;
+	bool foundEbest = false;
+	PTPMessageAnnounce EBest;
 	char EBestClockIdentity[PTP_CLOCK_IDENTITY_LENGTH];
+	int number_ports, j;
 
 	CommonPort **ports;
 	clock->getPortList(number_ports, ports);
+
 
 		/* Find EBest for all ports */
 	for (j = 0; j < number_ports; ++j) 
@@ -380,21 +412,22 @@ bool CommonPort::processStateChange( Event e )
 		{
 			continue;
 		}
-		if (EBest == NULL)
+		
+		if (!foundEbest)
 		{
 			EBest = ports[j]->calculateERBest();
+			foundEbest = true;
 		}
-		else if (ports[j]->calculateERBest())
+		else if (ports[j]->calculateERBest().isBetterThan(EBest))
 		{
-			if (ports[j]->calculateERBest()->isBetterThan(EBest))
-			{
-				EBest = ports[j]->calculateERBest();
-			}
+			EBest = ports[j]->calculateERBest();
+			foundEbest = true;
 		}
 	}
 
-	if (EBest == NULL)
+	if (!foundEbest)
 	{
+		GPTP_LOG_VERBOSE("STATE_CHANGE_EVENT	 EBest  NOT  found.");
 		return true;
 	}
 
@@ -402,9 +435,8 @@ bool CommonPort::processStateChange( Event e )
 
 	/* Check if we've changed */
 	uint8_t LastEBestClockIdentity[PTP_CLOCK_IDENTITY_LENGTH];
-	clock->getLastEBestIdentity().
-	getIdentityString( LastEBestClockIdentity );
-	EBest->getGrandmasterIdentity( EBestClockIdentity );
+	clock->getLastEBestIdentity().getIdentityString(LastEBestClockIdentity);
+	EBest.getGrandmasterIdentity(EBestClockIdentity);
 	if( memcmp( EBestClockIdentity, LastEBestClockIdentity,
 		 PTP_CLOCK_IDENTITY_LENGTH ) != 0 )
 	{
@@ -420,10 +452,10 @@ bool CommonPort::processStateChange( Event e )
 	GPTP_LOG_VERBOSE("STATE_CHANGE_EVENT	changed_external_master:%s",(changed_external_master ? "true" : "false"));
 
 	GPTP_LOG_VERBOSE("STATE_CHANGE_EVENT	EBest(announce)  START");
-	EBest->VerboseLog();
+	EBest.VerboseLog();
 	GPTP_LOG_VERBOSE("STATE_CHANGE_EVENT	EBest(announce)  END");
 
-	if( clock->isBetterThan( EBest ))
+	if (clock->isBetterThan(EBest))
 	{
 		// We're Grandmaster, set grandmaster info to me
 		ClockIdentity clock_identity;
@@ -444,6 +476,7 @@ bool CommonPort::processStateChange( Event e )
 
 	GPTP_LOG_VERBOSE("STATE_CHANGE_EVENT	number_ports:%d",number_ports);
 
+	bool isGrandMaster = false;
 	for (int j = 0; j < number_ports; ++j)
 	{
 		while (nullptr == ports[j] && j < number_ports)
@@ -457,34 +490,34 @@ bool CommonPort::processStateChange( Event e )
 		{
 			continue;
 		}
-		if (clock->isBetterThan(EBest))
+		if (isGrandMaster || clock->isBetterThan(EBest))
 		{
 			// We are the GrandMaster, all ports are master
-			EBest = NULL;	// EBest == NULL : we were grandmaster
+			isGrandMaster = true;
 			ports[j]->recommendState(PTP_MASTER, changed_external_master);
 			GPTP_LOG_VERBOSE("AFTER recommendState 1 port_state:%d", port_state);
 		}
 		else
 		{
-			if( EBest == ports[j]->calculateERBest() )
+			if (EBest == ports[j]->calculateERBest())
 			{
 				// The "best" Announce was recieved on this port
 				ClockIdentity clock_identity;
 				unsigned char priority1;
 				unsigned char priority2;
-				ClockQuality *clock_quality;
+				ClockQuality clock_quality;
 
 				ports[j]->recommendState(PTP_SLAVE, changed_external_master);
 				GPTP_LOG_VERBOSE("AFTER recommendState  2 port_state:%d", port_state);
 
-				clock_identity = EBest->getGrandmasterClockIdentity();
+				clock_identity = EBest.getGrandmasterClockIdentity();
 				getClock()->setGrandmasterClockIdentity(clock_identity);
-				priority1 = EBest->getGrandmasterPriority1();
+				priority1 = EBest.getGrandmasterPriority1();
 				getClock()->setGrandmasterPriority1( priority1 );
-				priority2 = EBest->getGrandmasterPriority2();
+				priority2 = EBest.getGrandmasterPriority2();
 				getClock()->setGrandmasterPriority2( priority2 );
-				clock_quality = EBest->getGrandmasterClockQuality();
-				getClock()->setGrandmasterClockQuality(*clock_quality);
+				clock_quality = EBest.getGrandmasterClockQuality();
+				getClock()->setGrandmasterClockQuality(clock_quality);
 			}
 			else
 			{
@@ -557,7 +590,7 @@ bool CommonPort::processSyncAnnounceTimeout( Event e )
 	(void) clock->calcLocalSystemClockRateDifference
 		( device_time, system_time );
 
-	setQualifiedAnnounce(nullptr);
+	resetQualifiedAnnounce();
 
 	clock->addEventTimerLocked
 		( this, SYNC_INTERVAL_TIMEOUT_EXPIRES,
